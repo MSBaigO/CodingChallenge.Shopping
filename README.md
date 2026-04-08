@@ -255,7 +255,7 @@ Open **Test Explorer** (`Test → Test Explorer`) and click **Run All Tests**.
 The workflow file is located at [.github/workflows/pr-tests.yml](.github/workflows/pr-tests.yml).
 
 ### Trigger
-The workflow runs automatically on every **pull request targeting `main`**.
+The workflow runs automatically on every **pull request targeting `master`**.
 
 ### What it does
 
