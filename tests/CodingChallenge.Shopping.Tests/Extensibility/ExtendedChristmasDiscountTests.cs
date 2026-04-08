@@ -6,16 +6,13 @@ using CodingChallenge.Shopping.Models;
 
 namespace CodingChallenge.Shopping.Tests.Extensibility;
 
-/// <summary>
-/// Extended post-Christmas clearance: 95% off Christmas items Jan 1–15.
-/// Declared file-scoped so it lives only in the test project.
-/// </summary>
+// 95% off Christmas items Jan 1–15.
 file class ExtendedChristmasDiscountStrategy : IDiscountStrategy
 {
     private const decimal DiscountRate = 0.95m;
 
     public bool AppliesTo(CartItem item, DateTime checkoutDate) =>
-        item.Product.Category == Category.Christmas && checkoutDate.Month == 1 && checkoutDate.Day <= 15;
+        item.Category == Category.Christmas && checkoutDate.Month == 1 && checkoutDate.Day <= 15;
 
     public decimal CalculatePrice(CartItem item, DateTime checkoutDate) =>
         item.BaseCost * (1m - DiscountRate);
@@ -23,8 +20,6 @@ file class ExtendedChristmasDiscountStrategy : IDiscountStrategy
 
 public class ExtendedChristmasDiscountTests
 {
-    /// <summary>Verifies that ExtendedChristmasDiscountStrategy applies 95% off Christmas items
-    /// Jan 1–15 and does not apply after the 15th.</summary>
     [Fact]
     public void ExtendedChristmasStrategy_ShouldApply95PercentDiscount_ThroughJanuary15()
     {
@@ -38,11 +33,7 @@ public class ExtendedChristmasDiscountTests
 
         var cart = new List<CartItem>
         {
-            new()
-            {
-                Product = new Product { Name = "Ornament", Category = Category.Christmas, Price = 20.00m },
-                Amount = PurchaseAmount.ForQuantity(1)
-            },
+            new() { ProductName = "Ornament", Category = Category.Christmas, Price = 20.00m, Quantity = 1 },
         };
 
         // Jan 1 — discount applies

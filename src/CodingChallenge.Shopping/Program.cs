@@ -5,18 +5,18 @@ using CodingChallenge.Shopping.Models;
 
 var christmasCart = new List<CartItem>
 {
-    new() { Product = new Product { Name = "Lights",    Category = Category.Christmas, Price = 5.99m }, Amount = PurchaseAmount.ForQuantity(10) },
-    new() { Product = new Product { Name = "Tree",      Category = Category.Christmas, Price = 169m  }, Amount = PurchaseAmount.ForQuantity(1)  },
-    new() { Product = new Product { Name = "Ornaments", Category = Category.Christmas, Price = 8m    }, Amount = PurchaseAmount.ForQuantity(15) },
+    new() { ProductName = "Lights", Category = Category.Christmas, Price = 5.99m, Quantity = 10 },
+    new() { ProductName = "Tree", Category = Category.Christmas, Price = 169m, Quantity = 1 },
+    new() { ProductName = "Ornaments", Category = Category.Christmas, Price = 8m, Quantity = 15 },
 };
 
 var foodCart = new List<CartItem>
 {
-    new() { Product = new Product { Name = "Apple",       Category = Category.Food, Price = 3.27m  }, Amount = PurchaseAmount.ForWeight(new Weight(0.79m, WeightUnit.Pound)) },
-    new() { Product = new Product { Name = "Scallop",     Category = Category.Food, Price = 18m    }, Amount = PurchaseAmount.ForWeight(new Weight(1.5m,  WeightUnit.Pound)) },
-    new() { Product = new Product { Name = "Salad",       Category = Category.Food, Price = 6.99m  }, Amount = PurchaseAmount.ForQuantity(1) },
-    new() { Product = new Product { Name = "Ground Beef", Category = Category.Food, Price = 7.99m  }, Amount = PurchaseAmount.ForWeight(new Weight(1.5m,  WeightUnit.Pound)) },
-    new() { Product = new Product { Name = "Red Wine",    Category = Category.Food, Price = 25.99m }, Amount = PurchaseAmount.ForQuantity(1) },
+    new() { ProductName = "Apple", Category = Category.Food, Price = 3.27m, Weight = 0.79m },
+    new() { ProductName = "Scallop", Category = Category.Food, Price = 18m, Weight = 1.5m },
+    new() { ProductName = "Salad", Category = Category.Food, Price = 6.99m, Quantity = 1 },
+    new() { ProductName = "Ground Beef", Category = Category.Food, Price = 7.99m, Weight = 1.5m },
+    new() { ProductName = "Red Wine", Category = Category.Food, Price = 25.99m, Quantity = 1 },
 };
 
 // Declared as ICalculator so this entry point depends on the abstraction, not the

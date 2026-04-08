@@ -2,31 +2,61 @@ using CodingChallenge.Shopping.Enums;
 
 namespace CodingChallenge.Shopping.Models;
 
-/// <summary>A cart line item pairing a product with how much of it is being purchased.</summary>
 public class CartItem
 {
-    private Product _product = null!;
-    private PurchaseAmount _amount = null!;
+    public string ProductName { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the product being purchased. Must not be null.</summary>
-    public Product Product
+    private decimal _price;
+    /// <summary>
+    /// Unit price or price per weight. Must be zero or greater.
+    /// </summary>
+    public decimal Price
     {
-        get => _product;
-        set => _product = value ?? throw new ArgumentNullException(nameof(value));
+        get => _price;
+        set
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), "Price cannot be negative.");
+            _price = value;
+        }
     }
 
-    /// <summary>Gets or sets the purchase amount (by quantity or weight). Must not be null.</summary>
-    public PurchaseAmount Amount
+    private int _quantity;
+    public int Quantity
     {
-        get => _amount;
-        set => _amount = value ?? throw new ArgumentNullException(nameof(value));
+        get => _quantity;
+        set
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), "Quantity cannot be negative.");
+            _quantity = value;
+        }
     }
 
-    /// <summary>Base cost before discounts (Weight.Amount × Price or Quantity × Price).</summary>
-    public decimal BaseCost => IsSoldByWeight
-        ? Amount.Weight!.Amount * Product.Price
-        : Amount.Quantity * Product.Price;
+    public Category Category { get; set; }
 
-    /// <summary>True when the item is purchased by weight.</summary>
-    public bool IsSoldByWeight => Amount.Type == PurchaseAmountType.Weight;
+    private decimal _weight;
+    /// <summary>
+    /// If > 0, item is sold by weight. Must be zero or greater.
+    /// </summary>
+    public decimal Weight
+    {
+        get => _weight;
+        set
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), "Weight cannot be negative.");
+            _weight = value;
+        }
+    }
+
+    /// <summary>
+    /// Base cost before discounts.
+    /// </summary>
+    public decimal BaseCost => IsSoldByWeight ? Weight * Price : Quantity * Price;
+
+    /// <summary>
+    /// True if the item is a Food item sold by weight (Weight > 0).
+    /// </summary>
+    public bool IsSoldByWeight => Category == Category.Food && Weight > 0;
 }

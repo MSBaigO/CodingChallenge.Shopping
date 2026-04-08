@@ -5,13 +5,13 @@ namespace CodingChallenge.Shopping.Tests.Models;
 
 public class CartItemValidationTests
 {
-    // ── Product.Price ────────────────────────────────────────────────────────
+    // ── Price ────────────────────────────────────────────────────────────────
 
     [Fact]
     public void Price_NegativeValue_ShouldThrowArgumentOutOfRangeException()
     {
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new Product { Price = -0.01m });
+            new CartItem { Price = -0.01m });
 
         Assert.Contains("Price", ex.Message);
     }
@@ -19,87 +19,74 @@ public class CartItemValidationTests
     [Fact]
     public void Price_Zero_ShouldBeAllowed()
     {
-        var product = new Product { Price = 0m };
+        var item = new CartItem { Price = 0m };
 
-        Assert.Equal(0m, product.Price);
+        Assert.Equal(0m, item.Price);
     }
 
     [Fact]
     public void Price_PositiveValue_ShouldBeAllowed()
     {
-        var product = new Product { Price = 9.99m };
+        var item = new CartItem { Price = 9.99m };
 
-        Assert.Equal(9.99m, product.Price);
+        Assert.Equal(9.99m, item.Price);
     }
 
-    // ── PurchaseAmount.ForQuantity ───────────────────────────────────────────
+    // ── Quantity ─────────────────────────────────────────────────────────────
 
     [Fact]
     public void Quantity_NegativeValue_ShouldThrowArgumentOutOfRangeException()
     {
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PurchaseAmount.ForQuantity(-1));
+            new CartItem { Quantity = -1 });
 
-        Assert.Contains("quantity", ex.Message);
+        Assert.Contains("Quantity", ex.Message);
     }
 
     [Fact]
     public void Quantity_Zero_ShouldBeAllowed()
     {
-        var amount = PurchaseAmount.ForQuantity(0);
+        var item = new CartItem { Quantity = 0 };
 
-        Assert.Equal(0, amount.Quantity);
+        Assert.Equal(0, item.Quantity);
     }
 
     [Fact]
     public void Quantity_PositiveValue_ShouldBeAllowed()
     {
-        var amount = PurchaseAmount.ForQuantity(5);
+        var item = new CartItem { Quantity = 5 };
 
-        Assert.Equal(5, amount.Quantity);
+        Assert.Equal(5, item.Quantity);
     }
 
-    // ── Weight constructor ───────────────────────────────────────────────────
+    // ── Weight ───────────────────────────────────────────────────────────────
 
     [Fact]
-    public void Weight_NegativeAmount_ShouldThrowArgumentOutOfRangeException()
+    public void Weight_NegativeValue_ShouldThrowArgumentOutOfRangeException()
     {
         var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new Weight(-0.5m, WeightUnit.Pound));
+            new CartItem { Weight = -0.5m });
 
-        Assert.Contains("amount", ex.Message);
+        Assert.Contains("Weight", ex.Message);
     }
 
     [Fact]
-    public void Weight_ZeroAmount_ShouldBeAllowed()
+    public void Weight_Zero_ShouldBeAllowed()
     {
-        var weight = new Weight(0m, WeightUnit.Pound);
+        // Zero weight is the sentinel meaning "sold by quantity, not weight".
+        var item = new CartItem { Weight = 0m };
 
-        Assert.Equal(0m, weight.Amount);
+        Assert.Equal(0m, item.Weight);
+        Assert.False(item.IsSoldByWeight);
     }
 
     [Fact]
-    public void Weight_PositiveAmount_ShouldBeAllowed()
+    public void Weight_PositiveValue_ShouldBeAllowed()
     {
-        var weight = new Weight(1.5m, WeightUnit.Pound);
+        var item = new CartItem { Category = Category.Food, Weight = 1.5m };
 
-        Assert.Equal(1.5m, weight.Amount);
-    }
-
-    // ── CartItem null guards ─────────────────────────────────────────────────
-
-    [Fact]
-    public void CartItem_NullProduct_ShouldThrowArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            new CartItem { Product = null!, Amount = PurchaseAmount.ForQuantity(1) });
-    }
-
-    [Fact]
-    public void CartItem_NullAmount_ShouldThrowArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            new CartItem { Product = new Product { Price = 1m }, Amount = null! });
+        Assert.Equal(1.5m, item.Weight);
+        Assert.True(item.IsSoldByWeight);
     }
 
     // ── BaseCost with boundary values ────────────────────────────────────────
@@ -107,11 +94,7 @@ public class CartItemValidationTests
     [Fact]
     public void BaseCost_ZeroPriceAndZeroQuantity_ShouldBeZero()
     {
-        var item = new CartItem
-        {
-            Product = new Product { Category = Category.Food, Price = 0m },
-            Amount = PurchaseAmount.ForQuantity(0)
-        };
+        var item = new CartItem { Category = Category.Food, Price = 0m, Quantity = 0 };
 
         Assert.Equal(0m, item.BaseCost);
     }
@@ -119,41 +102,29 @@ public class CartItemValidationTests
     [Fact]
     public void BaseCost_ZeroPriceWithWeight_ShouldBeZero()
     {
-        var item = new CartItem
-        {
-            Product = new Product { Category = Category.Food, Price = 0m },
-            Amount = PurchaseAmount.ForWeight(new Weight(2.0m, WeightUnit.Pound))
-        };
+        var item = new CartItem { Category = Category.Food, Price = 0m, Weight = 2.0m };
 
         Assert.Equal(0m, item.BaseCost);
     }
 
-    // ── IsSoldByWeight ───────────────────────────────────────────────────────
+    // ── IsSoldByWeight — category guard ──────────────────────────────────────
 
     [Fact]
-    public void IsSoldByWeight_QuantityAmount_ShouldBeFalse()
+    public void IsSoldByWeight_ChristmasItemWithWeight_ShouldBeFalse()
     {
-        // ForQuantity means the item is counted by units, never by weight.
-        var item = new CartItem
-        {
-            Product = new Product { Category = Category.Christmas, Price = 5m },
-            Amount = PurchaseAmount.ForQuantity(2)
-        };
+        // Non-Food categories must never be priced by weight even if Weight is set.
+        var item = new CartItem { Category = Category.Christmas, Price = 5m, Weight = 1m, Quantity = 2 };
 
         Assert.False(item.IsSoldByWeight);
         Assert.Equal(10m, item.BaseCost); // Quantity * Price
     }
 
     [Fact]
-    public void IsSoldByWeight_WeightAmount_ShouldBeTrue()
+    public void IsSoldByWeight_FoodItemWithWeight_ShouldBeTrue()
     {
-        var item = new CartItem
-        {
-            Product = new Product { Category = Category.Food, Price = 3m },
-            Amount = PurchaseAmount.ForWeight(new Weight(1.5m, WeightUnit.Pound))
-        };
+        var item = new CartItem { Category = Category.Food, Price = 3m, Weight = 1.5m };
 
         Assert.True(item.IsSoldByWeight);
-        Assert.Equal(4.5m, item.BaseCost); // Weight.Amount * Price
+        Assert.Equal(4.5m, item.BaseCost); // Weight * Price
     }
 }

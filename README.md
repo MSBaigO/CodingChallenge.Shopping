@@ -7,8 +7,10 @@ A clean, extensible grocery store checkout calculator built with the **Strategy*
 ## Table of Contents
 
 - [Project Overview](#project-overview)
+- [Architecture Summary](#architecture-summary)
 - [Folder & File Structure](#folder--file-structure)
 - [Design Choices](#design-choices)
+- [Assumptions](#assumptions)
 - [How to Run the Program](#how-to-run-the-program)
 - [How to Run the Tests](#how-to-run-the-tests)
 - [CI — GitHub Actions](#ci--github-actions)
@@ -17,7 +19,51 @@ A clean, extensible grocery store checkout calculator built with the **Strategy*
 
 ## Project Overview
 
-This solution implements a grocery store checkout calculator that supports multiple discount strategies (Christmas tiers, senior hour, extended post-Christmas clearance, and more) without any `if/else` chains or hard-coded strings. Adding a new discount type requires only a new file — no existing code changes needed.
+The original code packed every pricing rule into a single method using deeply nested `if/else` chains with hard-coded string comparisons. Adding a new discount (e.g., first responder, extended January clearance) would require touching that monolithic method every time — exactly the problem the challenge prompt calls out.
+
+This refactored solution replaces the monolith with a **strategy pipeline**: each discount rule lives in its own class behind a shared `IDiscountStrategy` interface. The calculator walks an ordered list of strategies and applies the first match. Adding a new discount means creating one new file — no existing code changes required.
+
+---
+
+## Architecture Summary
+
+```
+                    ┌────────────────────┐
+                    │     Program.cs     │  Entry point — uses ICalculator abstraction
+                    └────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │     ICalculator      │  Calculate(cart, date) → decimal
+                  └──────────┬───────────┘
+                             │
+                             ▼
+          ┌──────────────────────────────────────┐
+          │  GroceryStoreCheckoutCalculator      │
+          │  ─────────────────────────────────── │
+          │  Walks an ordered list of strategies │
+          │  and applies the FIRST match per item│
+          └──────────────────┬───────────────────┘
+                             │
+            ┌────────────────┼────────────────┐
+            ▼                ▼                ▼
+   ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐
+   │  Christmas  │  │   Senior     │  │   Default (No    │
+   │  Discount   │  │   Discount   │  │   Discount)      │
+   │  Strategy   │  │   Strategy   │  │   Strategy       │
+   └─────────────┘  └──────────────┘  └──────────────────┘
+   Dec tiers:        Food items,       Always matches.
+   20/60/90%         6–8 AM: 10% off   Returns BaseCost.
+```
+
+**Key patterns:**
+
+| Pattern | Where | Purpose |
+|---|---|---|
+| Strategy | `IDiscountStrategy` implementations | Isolate each discount rule in its own class |
+| Chain of Responsibility | `GroceryStoreCheckoutCalculator` | Walk strategies in order, apply first match |
+| Decorator | `ICalculator` wrappers (test-only) | Layer cross-cutting concerns (tax, rounding) without modifying the core |
+| Dependency Injection | Calculator constructor | Swap or compose strategy pipelines at construction time |
 
 ---
 
@@ -40,38 +86,33 @@ src/
     │   └── DefaultNoDiscountStrategy.cs  # Catch-all — full price, always matches
     │
     ├── Enums/
-    │   ├── Category.cs                   # Uncategorized | Christmas | Food
-    │   ├── PurchaseAmountType.cs         # Quantity | Weight
-    │   └── WeightUnit.cs                 # Pound | Ounce | Kilogram | Gram
+    │   └── Category.cs                   # Uncategorized | Christmas | Food
     │
     ├── Interfaces/
     │   ├── ICalculator.cs                # Calculate(cart, date) → decimal
     │   └── IDiscountStrategy.cs          # AppliesTo + CalculatePrice contract
     │
     └── Models/
-        ├── CartItem.cs                   # Product + PurchaseAmount; exposes BaseCost, IsSoldByWeight
-        ├── Product.cs                    # Id, Name, Category, Price (validated ≥ 0)
-        ├── PurchaseAmount.cs             # ForQuantity(int) / ForWeight(Weight) factory
-        └── Weight.cs                     # Amount (validated ≥ 0) + WeightUnit
+        └── CartItem.cs                   # Product, price, quantity, weight, category
+                                          #   with validation and computed BaseCost / IsSoldByWeight
 
 tests/
 └── CodingChallenge.Shopping.Tests/
     ├── CodingChallenge.Shopping.Tests.csproj  # xUnit test project targeting net9.0
     │
     ├── LegacyParity/
-    │   └── LegacyParityTests.cs          # Verifies expected output for known scenarios
+    │   └── LegacyParityTests.cs          # Proves refactored output matches original code exactly
     ├── Discounts/
-    │   ├── ChristmasDiscountTests.cs     # Each December pricing tier
+    │   ├── ChristmasDiscountTests.cs     # Each December pricing tier + tier boundaries
     │   └── SeniorDiscountTests.cs        # Senior hour by-unit, by-weight, and window boundary tests
     ├── BoundaryTests/
-    │   └── BoundaryAndEdgeCaseTests.cs   # Edge times, empty/null carts, null/empty strategies, uncategorized items
+    │   └── BoundaryAndEdgeCaseTests.cs   # Empty/null carts, null/empty strategies, uncategorized items
     ├── Models/
-    │   └── CartItemValidationTests.cs    # Product.Price, PurchaseAmount.ForQuantity, Weight ctor, CartItem null guards
+    │   └── CartItemValidationTests.cs    # Property validation (negative price/qty/weight), BaseCost, IsSoldByWeight
     └── Extensibility/
         ├── FirstResponderDiscountTests.cs     # 15% off all items; composition with built-in strategies
         ├── ExtendedChristmasDiscountTests.cs  # 95% off Christmas items Jan 1–15
-        └── CalculatorDecoratorTests.cs        # Proof-of-concept ICalculator decorators
-                                               #   (TaxAwareCalculator, RoundingCalculator, stacked)
+        └── CalculatorDecoratorTests.cs        # ICalculator decorators (TaxAwareCalculator, RoundingCalculator, stacked)
 ```
 
 ---
@@ -92,7 +133,7 @@ public interface IDiscountStrategy
 Adding a new discount (e.g., `FirstResponderDiscountStrategy`) means creating one new file — no existing code changes required.
 
 ### Chain of Responsibility
-`GroceryStoreCheckoutCalculator` (namespace `CodingChallenge.Shopping.Calculators`) walks an ordered list of strategies and applies the **first** one that matches each cart item. The `DefaultNoDiscountStrategy` is always last and always matches, acting as a safe catch-all.
+`GroceryStoreCheckoutCalculator` walks an ordered list of strategies and applies the **first** one that matches each cart item. The `DefaultNoDiscountStrategy` is always last and always matches, acting as a safe catch-all.
 
 Default strategy order:
 1. `ChristmasDiscountStrategy` — checked first for Christmas items in December
@@ -122,13 +163,6 @@ Rather than a chain of named constants and `if`-branches, the Christmas tiers ar
 (31, 0.90m)  // Dec 26–31: post-Christmas clearance
 ```
 
-### Extended Post-Christmas Clearance (`ExtendedChristmasDiscountStrategy`)
-A test-only strategy (declared `file`-scoped in `ExtendedChristmasDiscountTests.cs`) that demonstrates how the pipeline can be extended without touching production code:
-
-- **Applies to:** `Category.Christmas` items on **January 1–15** only
-- **Discount:** 95% off (customer pays 5% of base cost)
-- After January 15 the strategy's `AppliesTo` returns `false` and `DefaultNoDiscountStrategy` takes over
-
 ### Decorator Pattern (`ICalculator` decorators)
 The `ICalculator` interface makes it trivial to wrap the core calculator with additional behaviour using the decorator pattern. Two proof-of-concept decorators live in `CalculatorDecoratorTests.cs` (declared `file`-scoped, test-only):
 
@@ -147,50 +181,22 @@ ICalculator calculator =
             taxRate: 0.0925m));
 ```
 
-### `CartItem` model
-`CartItem` composes two objects:
+### `CartItem` computed properties
+`CartItem` exposes `BaseCost` and `IsSoldByWeight` as computed properties, removing the need for each strategy to repeat the `weight > 0` pricing logic. Property setters enforce non-negative values, catching invalid data at the model boundary.
 
-| Property | Type | Purpose |
-|---|---|---|
-| `Product` | `Product` | Id, Name, Category, Price — validated ≥ 0 at assignment |
-| `Amount` | `PurchaseAmount` | Created via `ForQuantity(int)` or `ForWeight(Weight)` |
+### Strongly-typed `Category` enum
+The legacy code used raw strings (`"Christmas"`, `"Food"`) for category comparisons. The refactored code uses a `Category` enum (`Uncategorized`, `Christmas`, `Food`), eliminating typo-based bugs and enabling compiler-checked exhaustiveness.
 
-Both setters throw `ArgumentNullException` when assigned `null`. `BaseCost` and `IsSoldByWeight` are computed from the two properties, keeping pricing logic out of each strategy.
+---
 
-```csharp
-// By quantity
-new CartItem
-{
-    Product = new Product { Name = "Ornament", Category = Category.Christmas, Price = 8m },
-    Amount = PurchaseAmount.ForQuantity(15)
-}
+## Assumptions
 
-// By weight
-new CartItem
-{
-    Product = new Product { Name = "Apple", Category = Category.Food, Price = 3.27m },
-    Amount = PurchaseAmount.ForWeight(new Weight(0.79m, WeightUnit.Pound))
-}
-```
-
-### `PurchaseAmount` factory
-Construction is enforced through static factories that validate at the boundary:
-
-| Factory | Validates |
-|---|---|
-| `PurchaseAmount.ForQuantity(int)` | `quantity >= 0` — throws `ArgumentOutOfRangeException` |
-| `PurchaseAmount.ForWeight(Weight)` | `weight != null` — throws `ArgumentNullException` |
-
-The `Weight` constructor similarly validates `amount >= 0`.
-
-### Strongly-typed enums
-The legacy code used raw strings (`"Christmas"`, `"food"`) for category comparisons. The refactored code uses enums, eliminating typo-based bugs and enabling compiler-checked exhaustiveness:
-
-| Enum | Values |
-|---|---|
-| `Category` | `Uncategorized`, `Christmas`, `Food` |
-| `PurchaseAmountType` | `Quantity`, `Weight` |
-| `WeightUnit` | `Pound`, `Ounce`, `Kilogram`, `Gram` |
+1. **Discount exclusivity** — Only one discount applies per item. The first matching strategy wins; discounts do not stack (e.g., a Christmas food item in senior hour gets only the Christmas discount, not both).
+2. **Senior hour window** — The original code used `Hours > 6 && Hours <= 8`, which maps to 6:00–8:59 AM inclusive. The refactored `SeniorDiscountStrategy` uses `hour >= 6 && hour <= 8` to match this behavior (the `Hours` property of `TimeSpan` is truncated, so hour 6 covers 6:00–6:59).
+3. **Weight-based pricing applies only to Food** — `IsSoldByWeight` returns `true` only when `Category == Food && Weight > 0`. Christmas or uncategorized items with a non-zero weight are still priced by quantity, matching the original behavior.
+4. **Christmas discounts apply only in December** — The original code only discounted Christmas items during December. Other months charge full price. Extending this (e.g., January clearance) is demonstrated in the extensibility tests but is not part of the default pipeline.
+5. **No persistence or authentication** — This is a pure calculation library. There is no database, user session, or payment processing.
+6. **Negative values are invalid** — Price, Quantity, and Weight reject negative values via setter validation. The original code had no guards; this was added as a minimal safety net.
 
 ---
 
@@ -241,16 +247,6 @@ dotnet test tests/CodingChallenge.Shopping.Tests/CodingChallenge.Shopping.Tests.
 
 ### From Visual Studio
 Open **Test Explorer** (`Test → Test Explorer`) and click **Run All Tests**.
-
-### Test categories
-
-| Folder | What it covers |
-|---|---|
-| `LegacyParity` | Expected output for known checkout scenarios |
-| `Discounts` | Each December pricing tier and the senior hour window |
-| `BoundaryTests` | Edge cases: boundary times, empty/null carts, null/empty strategy collections, uncategorized items |
-| `Models` | Validation: `Product.Price`, `PurchaseAmount.ForQuantity`, `Weight` ctor, `CartItem` null guards |
-| `Extensibility` | `FirstResponderDiscountTests` — custom strategy via DI; `ExtendedChristmasDiscountTests` — Jan 1–15 clearance; `CalculatorDecoratorTests` — `ICalculator` decorator pattern |
 
 ---
 

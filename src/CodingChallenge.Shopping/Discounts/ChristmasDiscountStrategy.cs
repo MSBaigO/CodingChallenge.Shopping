@@ -16,7 +16,7 @@ public class ChristmasDiscountStrategy : IDiscountStrategy
     ];
 
     public bool AppliesTo(CartItem item, DateTime checkoutDate) =>
-        item.Product.Category == Category.Christmas && checkoutDate.Month == 12;
+        item.Category == Category.Christmas && checkoutDate.Month == 12;
 
     public decimal CalculatePrice(CartItem item, DateTime checkoutDate) =>
         item.BaseCost * (1m - GetDiscountRate(checkoutDate.Day));

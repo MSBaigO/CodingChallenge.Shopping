@@ -4,9 +4,10 @@ using CodingChallenge.Shopping.Models;
 
 namespace CodingChallenge.Shopping.Calculators;
 
-// Prices a cart by delegating each item to the first matching IDiscountStrategy.
+// Uses the Strategy pattern; discount rules live in IDiscountStrategy implementations.
 public class GroceryStoreCheckoutCalculator : ICalculator
 {
+    // IReadOnlyList prevents the injected collection from being mutated after construction.
     private readonly IReadOnlyList<IDiscountStrategy> _strategies;
 
     public GroceryStoreCheckoutCalculator(IEnumerable<IDiscountStrategy> strategies)
@@ -18,12 +19,16 @@ public class GroceryStoreCheckoutCalculator : ICalculator
         _strategies = list;
     }
 
-    // Default order: Christmas → Senior → Default (first match wins).
+    /// <summary>
+    /// Creates a calculator with the default discount strategies.
+    /// Strategy order matters: more-specific rules must precede <see cref="DefaultNoDiscountStrategy"/>.
+    /// </summary>
     public GroceryStoreCheckoutCalculator()
         : this(
         [
             new ChristmasDiscountStrategy(),
             new SeniorDiscountStrategy(),
+            // Fallback: always matches, guarantees every item gets a price.
             new DefaultNoDiscountStrategy(),
         ])
     {
@@ -34,6 +39,10 @@ public class GroceryStoreCheckoutCalculator : ICalculator
         if (cart is null || cart.Count == 0)
             return 0m;
 
+        if (cart.Any(item => item is null))
+            throw new ArgumentException("Cart must not contain null items.", nameof(cart));
+
+        // Walk strategies in order; apply the first one that claims the item.
         return cart.Sum(item =>
             _strategies.First(s => s.AppliesTo(item, checkoutDate))
                        .CalculatePrice(item, checkoutDate));

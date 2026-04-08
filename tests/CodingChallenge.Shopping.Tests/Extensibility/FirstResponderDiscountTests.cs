@@ -6,10 +6,7 @@ using CodingChallenge.Shopping.Models;
 
 namespace CodingChallenge.Shopping.Tests.Extensibility;
 
-/// <summary>
-/// A new discount strategy added WITHOUT modifying GroceryStoreCheckoutCalculator,
-/// proving the Open/Closed Principle holds.
-/// </summary>
+// 15% discount applied to all items; demonstrates Open/Closed Principle.
 file class FirstResponderDiscountStrategy : IDiscountStrategy
 {
     private const decimal DiscountRate = 0.15m;
@@ -22,8 +19,6 @@ file class FirstResponderDiscountStrategy : IDiscountStrategy
 
 public class FirstResponderDiscountTests
 {
-    /// <summary>Verifies that injecting a brand-new strategy applies its discount to all items
-    /// without any changes to GroceryStoreCheckoutCalculator, demonstrating the Open/Closed Principle.</summary>
     [Fact]
     public void FirstResponderStrategy_ShouldApply15PercentDiscount_WithoutModifyingCalculator()
     {
@@ -33,22 +28,13 @@ public class FirstResponderDiscountTests
             new DefaultNoDiscountStrategy(),
         };
 
-        // The concrete type is intentional here: the strategy-injection constructor is only
-        // available on GroceryStoreCheckoutCalculator, not on ICalculator.
+        // Strategy-injection constructor is only on GroceryStoreCheckoutCalculator, not ICalculator.
         var calculator = new GroceryStoreCheckoutCalculator(strategies);
 
         var cart = new List<CartItem>
         {
-            new()
-            {
-                Product = new Product { Name = "Bread", Category = Category.Food, Price = 4.00m },
-                Amount = PurchaseAmount.ForQuantity(1)
-            },
-            new()
-            {
-                Product = new Product { Name = "Ornament", Category = Category.Christmas, Price = 10.00m },
-                Amount = PurchaseAmount.ForQuantity(2)
-            },
+            new() { ProductName = "Bread", Category = Category.Food, Price = 4.00m, Quantity = 1 },
+            new() { ProductName = "Ornament", Category = Category.Christmas, Price = 10.00m, Quantity = 2 },
         };
 
         var total = calculator.Calculate(cart, new DateTime(2020, 11, 30));
@@ -58,8 +44,6 @@ public class FirstResponderDiscountTests
         Assert.Equal(3.40m + 17.00m, total);
     }
 
-    /// <summary>Verifies that a custom strategy can be inserted between built-in strategies so that
-    /// items not matched by earlier rules are caught by the custom strategy rather than the default.</summary>
     [Fact]
     public void CustomStrategies_CanBeComposedWithBuiltIn()
     {
@@ -71,24 +55,15 @@ public class FirstResponderDiscountTests
             new DefaultNoDiscountStrategy(),
         };
 
-        // The concrete type is intentional here: the strategy-injection constructor is only
-        // available on GroceryStoreCheckoutCalculator, not on ICalculator.
+        // Strategy-injection constructor is only on GroceryStoreCheckoutCalculator, not ICalculator.
         var calculator = new GroceryStoreCheckoutCalculator(strategies);
 
         var cart = new List<CartItem>
         {
             // Christmas item on Dec 5 -> 20% off
-            new()
-            {
-                Product = new Product { Name = "Tree", Category = Category.Christmas, Price = 100m },
-                Amount = PurchaseAmount.ForQuantity(1)
-            },
+            new() { ProductName = "Tree", Category = Category.Christmas, Price = 100m, Quantity = 1 },
             // Uncategorized item -> First Responder 15% off
-            new()
-            {
-                Product = new Product { Name = "Radio", Category = Category.Uncategorized, Price = 50m },
-                Amount = PurchaseAmount.ForQuantity(1)
-            },
+            new() { ProductName = "Radio", Category = Category.Uncategorized, Price = 50m, Quantity = 1 },
         };
 
         var total = calculator.Calculate(cart, new DateTime(2020, 12, 5));
