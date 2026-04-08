@@ -15,9 +15,9 @@ public class SeniorDiscountStrategy : IDiscountStrategy
     {
         int hour = checkoutDate.TimeOfDay.Hours;
 
-        // Food items only, between 6:00 AM and 8:59 AM.
+        // Food items only, between 7:00 AM and 8:59 AM (hour strictly after 6).
         return item.Category == Category.Food
-            && hour >= SeniorHourStart
+            && hour > SeniorHourStart
             && hour <= SeniorHourEnd;
     }
 

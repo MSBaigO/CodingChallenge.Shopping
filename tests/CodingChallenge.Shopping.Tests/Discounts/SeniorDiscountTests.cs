@@ -38,7 +38,7 @@ public class SeniorDiscountTests
     }
 
     [Fact]
-    public void SeniorHourBoundary_Exactly6AM_ShouldApply10PercentDiscount()
+    public void SeniorHourBoundary_Exactly6AM_ShouldChargeFullPrice()
     {
         var cart = new List<CartItem>
         {
@@ -48,7 +48,7 @@ public class SeniorDiscountTests
 
         var total = _calculator.Calculate(cart, date);
 
-        Assert.Equal(90m, total); // 6:00 AM is inside the window
+        Assert.Equal(100m, total); // 6:00 AM is outside the window; discount starts at 7:00 AM
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class SeniorDiscountTests
 
         var total = _calculator.Calculate(cart, date);
 
-        Assert.Equal(90m, total); // first hour inside the window
+        Assert.Equal(90m, total); // 7:00 AM is the first hour of the window
     }
 
     [Fact]

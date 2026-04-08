@@ -53,7 +53,7 @@ This refactored solution replaces the monolith with a **strategy pipeline**: eac
    │  Strategy   │  │   Strategy   │  │   Strategy       │
    └─────────────┘  └──────────────┘  └──────────────────┘
    Dec tiers:        Food items,       Always matches.
-   20/60/90%         6–8 AM: 10% off   Returns BaseCost.
+   20/60/90%         7–8 AM: 10% off   Returns BaseCost.
 ```
 
 **Key patterns:**
@@ -82,7 +82,7 @@ src/
     │
     ├── Discounts/                        # One file per discount strategy
     │   ├── ChristmasDiscountStrategy.cs  # Data-driven tiered December discounts (20/60/90%)
-    │   ├── SeniorDiscountStrategy.cs     # 10% off Food during 6:00–8:59 AM window
+    │   ├── SeniorDiscountStrategy.cs     # 10% off Food during 7:00–8:59 AM window
     │   └── DefaultNoDiscountStrategy.cs  # Catch-all — full price, always matches
     │
     ├── Enums/
@@ -192,7 +192,7 @@ The legacy code used raw strings (`"Christmas"`, `"Food"`) for category comparis
 ## Assumptions
 
 1. **Discount exclusivity** — Only one discount applies per item. The first matching strategy wins; discounts do not stack (e.g., a Christmas food item in senior hour gets only the Christmas discount, not both).
-2. **Senior hour window** — The refactored `SeniorDiscountStrategy` uses `hour >= 6 && hour <= 8`, which covers 6:00–8:59 AM (hours 6, 7, and 8 inclusive). If the original code used `Hours > 6 && Hours <= 8`, that condition would apply only from 7:00–8:59 AM; the refactored code intentionally expands the window to include the 6:00–6:59 AM slot.
+2. **Senior hour window** — `SeniorDiscountStrategy` uses `hour > 6 && hour <= 8`, matching the original code's condition of `Hours > 6 && Hours <= 8`. This covers 7:00–8:59 AM (hours 7 and 8 inclusive). The 6:00–6:59 AM slot is intentionally excluded.
 3. **Weight-based pricing applies only to Food** — `IsSoldByWeight` returns `true` only when `Category == Food && Weight > 0`. Christmas or uncategorized items with a non-zero weight are still priced by quantity, matching the original behavior.
 4. **Christmas discounts apply only in December** — The original code only discounted Christmas items during December. Other months charge full price. Extending this (e.g., January clearance) is demonstrated in the extensibility tests but is not part of the default pipeline.
 5. **No persistence or authentication** — This is a pure calculation library. There is no database, user session, or payment processing.
