@@ -1,7 +1,9 @@
 using CodingChallenge.Shopping.Enums;
 
 namespace CodingChallenge.Shopping.Models;
-
+/// <summary>
+/// Represents an item in the shopping cart.
+/// </summary>
 public class CartItem
 {
     public string ProductName { get; set; } = string.Empty;
