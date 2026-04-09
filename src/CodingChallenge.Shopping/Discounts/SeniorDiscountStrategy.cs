@@ -8,7 +8,7 @@ namespace CodingChallenge.Shopping.Discounts;
 public class SeniorDiscountStrategy : IDiscountStrategy
 {
     private const int SeniorHourStart = 7;
-    private const int SeniorHourEnd = 8;
+    private const int SeniorHourEnd = 9;
     private const decimal SeniorDiscountRate = 0.10m;
 
     public bool AppliesTo(CartItem item, DateTime checkoutDate)
@@ -18,7 +18,7 @@ public class SeniorDiscountStrategy : IDiscountStrategy
         // Food items only, between 7:00 AM and 8:59 AM (hour strictly after 6).
         return item.Category == Category.Food
             && hour >= SeniorHourStart
-            && hour <= SeniorHourEnd;
+            && hour < SeniorHourEnd;
     }
 
     public decimal CalculatePrice(CartItem item, DateTime checkoutDate) =>
