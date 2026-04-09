@@ -192,7 +192,7 @@ The legacy code used raw strings (`"Christmas"`, `"Food"`) for category comparis
 ## Assumptions
 
 1. **Discount exclusivity** — Only one discount applies per item. The first matching strategy wins; discounts do not stack (e.g., a Christmas food item in senior hour gets only the Christmas discount, not both).
-2. **Senior hour window** — `SeniorDiscountStrategy` uses `hour > 6 && hour <= 8`, matching the original code's condition of `Hours > 6 && Hours <= 8`. This covers 7:00–8:59 AM (hours 7 and 8 inclusive). The 6:00–6:59 AM slot is intentionally excluded.
+2. **Senior hour window** — `SeniorDiscountStrategy` uses named constants `SeniorHourStart = 7` and `SeniorHourEnd = 9` with the condition `hour >= SeniorHourStart && hour < SeniorHourEnd`. This covers 7:00–8:59 AM (hours 7 and 8 inclusive). The 6:00–6:59 AM slot is intentionally excluded.
 3. **Weight-based pricing applies only to Food** — `IsSoldByWeight` returns `true` only when `Category == Food && Weight > 0`. Christmas or uncategorized items with a non-zero weight are still priced by quantity, matching the original behavior.
 4. **Christmas discounts apply only in December** — The original code only discounted Christmas items during December. Other months charge full price. Extending this (e.g., January clearance) is demonstrated in the extensibility tests but is not part of the default pipeline.
 5. **No persistence or authentication** — This is a pure calculation library. There is no database, user session, or payment processing.
