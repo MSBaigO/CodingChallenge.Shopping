@@ -7,7 +7,7 @@ namespace CodingChallenge.Shopping.Discounts;
 // Seniors get a 10% discount on food items purchased during the early morning hours.
 public class SeniorDiscountStrategy : IDiscountStrategy
 {
-    private const int SeniorHourStart = 6;
+    private const int SeniorHourStart = 7;
     private const int SeniorHourEnd = 8;
     private const decimal SeniorDiscountRate = 0.10m;
 
@@ -17,7 +17,7 @@ public class SeniorDiscountStrategy : IDiscountStrategy
 
         // Food items only, between 7:00 AM and 8:59 AM (hour strictly after 6).
         return item.Category == Category.Food
-            && hour > SeniorHourStart
+            && hour >= SeniorHourStart
             && hour <= SeniorHourEnd;
     }
 
